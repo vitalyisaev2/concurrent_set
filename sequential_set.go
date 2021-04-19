@@ -19,20 +19,20 @@ func (s *sequentialSet) Insert(value int) bool {
 		return true
 	}
 
-	// only one item in the set
-	if s.head.next == nil {
-		switch {
-		case s.head.value < value:
-			s.insertBetween(s.head, nil, value)
+	switch {
+	case s.head.value < value:
+		if s.head.next == nil {
+			s.insertAfter(s.head, value)
 			return true
-		case s.head.value > value:
-			// swap head and new node
-			oldHead := s.head
-			s.head = &node{value: value, next: oldHead}
-			return true
-		default:
-			return false
 		}
+		break
+	case s.head.value > value:
+		// swap head and new node
+		oldHead := s.head
+		s.head = &node{value: value, next: oldHead}
+		return true
+	default:
+		return false
 	}
 
 	// multiple items in set, seek the predecessor
@@ -48,11 +48,12 @@ func (s *sequentialSet) Insert(value int) bool {
 		return false
 	}
 
-	s.insertBetween(curr, nil, value)
+	s.insertAfter(curr, value)
 	return true
 }
 
-func (s *sequentialSet) insertBetween(pred, next *node, value int) {
+func (s *sequentialSet) insertAfter(pred *node, value int) {
+	next := pred.next
 	inserted := &node{value: value}
 	inserted.next = next
 	pred.next = inserted
