@@ -84,7 +84,7 @@ func (s *sequentialSet) Remove(value int) bool {
 	}
 
 	if s.head.value == value {
-		s.head = nil
+		s.head = s.head.next
 		return true
 	}
 
