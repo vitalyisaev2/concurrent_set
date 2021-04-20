@@ -1,0 +1,39 @@
+package set
+
+import (
+	"sync"
+)
+
+var _ Set = (*coarseGrainedSyncSet)(nil)
+
+type coarseGrainedSyncSet struct {
+	mutex         sync.RWMutex
+	sequentialSet Set
+}
+
+func (c *coarseGrainedSyncSet) Insert(value int) bool {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	return c.sequentialSet.Insert(value)
+}
+
+func (c *coarseGrainedSyncSet) Contains(value int) bool {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	return c.sequentialSet.Contains(value)
+}
+
+func (c *coarseGrainedSyncSet) Remove(value int) bool {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	return c.sequentialSet.Remove(value)
+}
+
+func NewCoarseGrainedSyncSet() Set {
+	return &coarseGrainedSyncSet{
+		sequentialSet: NewSequentialSet(),
+	}
+}
