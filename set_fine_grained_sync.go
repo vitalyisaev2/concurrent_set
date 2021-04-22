@@ -18,12 +18,12 @@ type fineGrainedSyncSet struct {
 }
 
 func (s *fineGrainedSyncSet) Insert(value int) bool {
+	// it looks impossible to use defers here
+	s.head.mutex.Lock()
+	s.head.next.mutex.Lock()
+
 	pred := s.head
 	curr := pred.next
-
-	// it looks impossible to use defers here
-	pred.mutex.Lock()
-	curr.mutex.Lock()
 
 	for curr.value < value {
 		pred.mutex.Unlock()
@@ -50,11 +50,11 @@ func (s *fineGrainedSyncSet) Insert(value int) bool {
 }
 
 func (s fineGrainedSyncSet) Contains(value int) bool {
+	s.head.mutex.Lock()
+	s.head.next.mutex.Lock()
+
 	pred := s.head
 	curr := pred.next
-
-	pred.mutex.Lock()
-	curr.mutex.Lock()
 
 	for curr.value < value {
 		pred.mutex.Unlock()
@@ -74,11 +74,11 @@ func (s fineGrainedSyncSet) Contains(value int) bool {
 }
 
 func (s *fineGrainedSyncSet) Remove(value int) bool {
+	s.head.mutex.Lock()
+	s.head.next.mutex.Lock()
+
 	pred := s.head
 	curr := s.head.next
-
-	pred.mutex.Lock()
-	curr.mutex.Lock()
 
 	for curr.value < value {
 		pred.mutex.Unlock()

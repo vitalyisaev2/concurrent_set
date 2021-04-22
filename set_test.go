@@ -136,8 +136,8 @@ func TestCRUDConcurrent(t *testing.T) {
 	f := factory{}
 
 	kinds := []kind{
-		fineGrained,
 		coarseGrained,
+		fineGrained,
 	}
 
 	for _, k := range kinds {
