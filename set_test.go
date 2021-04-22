@@ -11,15 +11,14 @@ func TestSet(t *testing.T) {
 	constructors := []func() Set{
 		NewSequentialSet,
 		NewCoarseGrainedSyncSet,
+		NewFineGrainedSyncSet,
 	}
 
 	for _, c := range constructors {
 		set := c()
 
 		t.Run(fmt.Sprintf("%T", set), func(t *testing.T) {
-
 			t.Run("basic operations", func(t *testing.T) {
-
 				t.Run("ascending insertion", func(t *testing.T) {
 					// add some values
 					require.True(t, set.Insert(1))

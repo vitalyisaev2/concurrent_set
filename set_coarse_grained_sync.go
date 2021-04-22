@@ -32,6 +32,7 @@ func (c *coarseGrainedSyncSet) Remove(value int) bool {
 	return c.sequentialSet.Remove(value)
 }
 
+// NewCoarseGrainedSyncSet provides thread-safe implementation of set, utilizing pessimistic locks
 func NewCoarseGrainedSyncSet() Set {
 	return &coarseGrainedSyncSet{
 		sequentialSet: NewSequentialSet(),
