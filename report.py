@@ -4,7 +4,6 @@ Script rendering Go benchmark results into plots
 """
 
 import datetime
-from typing import List
 
 import pandas as pd
 
@@ -65,28 +64,42 @@ class BenchmarkCase(object):
         scenario = split[4]
 
         if line.units == "ns/op":
-            runtime = datetime.timedelta(microseconds=line.runtime/1000)
+            runtime = datetime.timedelta(microseconds=line.runtime / 1000)
         else:
             raise ValueError("FIXME: new unit")
 
         return BenchmarkCase(threads, data_source, set_kind, scenario, runtime)
 
 
-def parse_report(src: str) -> List[BenchmarkLine]:
+def parse_report(src_file: str) -> pd.DataFrame:
+    with open(src_file) as f:
+        src = f.read()
+
     raw_lines = src.splitlines()
     raw_lines = raw_lines[4:-2]  # drop extra information
     parsed_lines = [BenchmarkLine.from_str(line) for line in raw_lines]
     bench_cases = [BenchmarkCase.from_benchmark_line(line) for line in parsed_lines]
     df = pd.DataFrame([bc.__dict__ for bc in bench_cases])
     print(df)
+    return df
+
+
+def render_plot(df: pd.DataFrame, scenario: str, data_source: str):
+    x = df[df["data_source"] == data_source][["threads", "set_kind", "runtime"]]
+    pivot = x.pivot(columns=['set_kind'], values=['runtime'], index='threads')
+
+    # axes = pivot.plot(kind="line", title="Sort.{}".format(method_name), logx=True, logy=True)
+    axes = pivot.plot(kind="line", title="Scenario: {}".format(scenario))
+    axes.set_ylabel("nanoseconds")
+    lgd = axes.legend(loc='center right', bbox_to_anchor=(1.5, 0.5))
+    axes.figure.savefig("/tmp/" + scenario + ".svg",
+                        bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 
 def main():
     src_file = "report.txt"
-    with open(src_file) as f:
-        src = f.read()
-
-    parse_report(src)
+    df = parse_report(src_file)
+    render_plot(df, "ololo", "ascending_array_input")
 
 
 if __name__ == "__main__":

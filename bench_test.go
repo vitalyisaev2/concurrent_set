@@ -21,7 +21,7 @@ func BenchmarkSet(b *testing.B) {
 		{name: "shuffled_array_input", data: makeShuffledArray(inputLength)},
 	}
 
-	threadNumbers := []int{1, 4, 16}
+	threadNumbers := []int{1, 2, 4, 8, 16, 32, 64}
 
 	// combination of parameters
 	for _, threadNumber := range threadNumbers {
