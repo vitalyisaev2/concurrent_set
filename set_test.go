@@ -20,9 +20,9 @@ func (k kind) String() string {
 	case sequential:
 		return "sequential"
 	case coarseGrained:
-		return "coarse grained"
+		return "coarse_grained"
 	case fineGrained:
-		return "fine grained"
+		return "fine_grained"
 	default:
 		panic("unknown set kind")
 	}
@@ -43,7 +43,7 @@ func (factory) new(k kind) Set {
 	}
 }
 
-// TestSequential verifies sequential CRUD operations on various set implementations
+// TestSequential verifies sequential CRUD operations of various set implementations
 func TestSequential(t *testing.T) {
 	f := factory{}
 
@@ -131,8 +131,8 @@ func TestSequential(t *testing.T) {
 	}
 }
 
-// TestCRUDConcurrent verifies concurrent CRUD operations on various set implementations
-func TestCRUDConcurrent(t *testing.T) {
+// TestConcurrent verifies concurrent CRUD operations of various set implementations
+func TestConcurrent(t *testing.T) {
 	f := factory{}
 
 	kinds := []kind{
@@ -144,8 +144,8 @@ func TestCRUDConcurrent(t *testing.T) {
 		k := k
 
 		const (
-			threads = 10
-			items   = 100
+			threads = 32
+			items   = 1000
 		)
 
 		t.Run(k.String(), func(t *testing.T) {
