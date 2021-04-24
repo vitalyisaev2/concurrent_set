@@ -6,9 +6,9 @@ import (
 )
 
 type syncNode struct {
-	mutex sync.Mutex
 	next  *syncNode
 	value int
+	mutex sync.Mutex
 }
 
 var _ Set = (*fineGrainedSyncSet)(nil)
@@ -94,13 +94,14 @@ func (s *fineGrainedSyncSet) Remove(value int) bool {
 
 	if curr.value == value {
 		pred.next = curr.next
+
 		return true
 	}
 
 	return false
 }
 
-// NewFineGrainedSyncSet provides more optimal thread-safe set implementation with a mutex in every list node
+// NewFineGrainedSyncSet provides more optimal thread-safe set implementation with a mutex in every list node.
 func NewFineGrainedSyncSet() Set {
 	// set must contain sentinel nodes with minimal and maximal values
 	s := &fineGrainedSyncSet{}

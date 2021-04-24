@@ -7,8 +7,8 @@ import (
 var _ Set = (*coarseGrainedSyncSet)(nil)
 
 type coarseGrainedSyncSet struct {
-	mutex         sync.RWMutex
 	sequentialSet Set
+	mutex         sync.RWMutex
 }
 
 func (c *coarseGrainedSyncSet) Insert(value int) bool {
@@ -32,7 +32,7 @@ func (c *coarseGrainedSyncSet) Remove(value int) bool {
 	return c.sequentialSet.Remove(value)
 }
 
-// NewCoarseGrainedSyncSet provides thread-safe implementation of set, utilizing pessimistic locks
+// NewCoarseGrainedSyncSet provides thread-safe implementation of set, utilizing pessimistic locks.
 func NewCoarseGrainedSyncSet() Set {
 	return &coarseGrainedSyncSet{
 		sequentialSet: NewSequentialSet(),

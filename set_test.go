@@ -7,15 +7,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type kind int8
+type setKind int8
 
 const (
-	sequential kind = iota + 1
+	sequential setKind = iota + 1
 	coarseGrained
 	fineGrained
 )
 
-func (k kind) String() string {
+func (k setKind) String() string {
 	switch k {
 	case sequential:
 		return "sequential"
@@ -24,13 +24,13 @@ func (k kind) String() string {
 	case fineGrained:
 		return "fine_grained"
 	default:
-		panic("unknown set kind")
+		panic("unknown set setKind")
 	}
 }
 
 type factory struct{}
 
-func (factory) new(k kind) Set {
+func (factory) new(k setKind) Set {
 	switch k {
 	case sequential:
 		return NewSequentialSet()
@@ -39,15 +39,15 @@ func (factory) new(k kind) Set {
 	case fineGrained:
 		return NewFineGrainedSyncSet()
 	default:
-		panic("unknown set kind")
+		panic("unknown set setKind")
 	}
 }
 
-// TestSequential verifies sequential CRUD operations of various set implementations
+// TestSequential verifies sequential CRUD operations of various set implementations.
 func TestSequential(t *testing.T) {
 	f := factory{}
 
-	kinds := []kind{
+	kinds := []setKind{
 		sequential,
 		fineGrained,
 		coarseGrained,
@@ -131,11 +131,11 @@ func TestSequential(t *testing.T) {
 	}
 }
 
-// TestConcurrent verifies concurrent CRUD operations of various set implementations
+// TestConcurrent verifies concurrent CRUD operations of various set implementations.
 func TestConcurrent(t *testing.T) {
 	f := factory{}
 
-	kinds := []kind{
+	kinds := []setKind{
 		coarseGrained,
 		fineGrained,
 	}

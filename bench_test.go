@@ -8,63 +8,38 @@ import (
 )
 
 func BenchmarkSet(b *testing.B) {
-	f := factory{}
-
-	kinds := []kind{
+	kinds := []setKind{
 		coarseGrained,
 		fineGrained,
 	}
 
-	type dataSource struct {
-		name string
-		data []int
-	}
-
 	const inputLength = 2 << 9
 
-	dataSources := []dataSource{
-		{
-			name: "ascending_array_input",
-			data: makeAscendingArray(inputLength),
-		},
-		{
-			name: "descending_array_input",
-			data: makeDescendingArray(inputLength),
-		},
-		{
-			name: "shuffled_array_input",
-			data: makeShuffledArray(inputLength),
-		},
+	dataSources := []*dataSource{
+		{name: "ascending_array_input", data: makeAscendingArray(inputLength)},
+		{name: "descending_array_input", data: makeDescendingArray(inputLength)},
+		{name: "shuffled_array_input", data: makeShuffledArray(inputLength)},
 	}
 
-	//threadNumbers := []int{1, 2, 4, 8, 16, 32, 64}
 	threadNumbers := []int{1, 4, 16}
 
+	// combination of parameters
 	for _, threadNumber := range threadNumbers {
 		threadNumber := threadNumber
+
 		b.Run(fmt.Sprintf("%v_threads", threadNumber), func(b *testing.B) {
 			for _, ds := range dataSources {
-				ds = ds
+				ds := ds
+
 				b.Run(ds.name, func(b *testing.B) {
-					for _, k := range kinds {
-						k := k
-						b.Run(k.String(), func(b *testing.B) {
+					for _, kind := range kinds {
+						kind := kind
+
+						b.Run(kind.String(), func(b *testing.B) {
+							params := &benchParams{kind: kind, threads: threadNumber, dataSource: ds}
+
 							b.Run("concurrent insertion", func(b *testing.B) {
-								set := f.new(k)
-
-								wg := sync.WaitGroup{}
-								wg.Add(threadNumber)
-
-								for i := 0; i < threadNumber; i++ {
-									go func() {
-										defer wg.Done()
-										for j := 0; j < b.N; j++ {
-											ix := j % len(ds.data)
-											set.Insert(ds.data[ix])
-										}
-									}()
-								}
-								wg.Wait()
+								benchConcurrentInsertion(b, params)
 							})
 						})
 					}
@@ -72,6 +47,11 @@ func BenchmarkSet(b *testing.B) {
 			}
 		})
 	}
+}
+
+type dataSource struct {
+	name string
+	data []int
 }
 
 func makeAscendingArray(length int) []int {
@@ -99,4 +79,34 @@ func makeShuffledArray(length int) []int {
 	})
 
 	return output
+}
+
+type benchParams struct {
+	dataSource *dataSource
+	threads    int
+	kind       setKind
+}
+
+func benchConcurrentInsertion(b *testing.B, params *benchParams) {
+	b.Helper()
+
+	f := factory{}
+
+	set := f.new(params.kind)
+
+	wg := sync.WaitGroup{}
+	wg.Add(params.threads)
+
+	for i := 0; i < params.threads; i++ {
+		go func() {
+			defer wg.Done()
+
+			for j := 0; j < b.N; j++ {
+				ix := j % len(params.dataSource.data)
+				val := params.dataSource.data[ix]
+				set.Insert(val)
+			}
+		}()
+	}
+	wg.Wait()
 }
