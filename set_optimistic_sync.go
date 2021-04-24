@@ -56,7 +56,11 @@ func (s *optimisticSyncSet) Contains(value int) bool {
 		pred.mutex.Unlock()
 	}()
 
-	return curr.value == value
+	if s.validate(pred, curr) {
+		return curr.value == value
+	}
+
+	return false
 }
 
 func (s *optimisticSyncSet) Remove(value int) bool {

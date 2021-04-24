@@ -15,6 +15,7 @@ func BenchmarkSet(b *testing.B) {
 		coarseGrained,
 		fineGrained,
 		optimistic,
+		lazy,
 	}
 
 	const inputLength = 2 << 9

@@ -14,6 +14,7 @@ const (
 	coarseGrained
 	fineGrained
 	optimistic
+	lazy
 )
 
 func (k setKind) String() string {
@@ -26,6 +27,8 @@ func (k setKind) String() string {
 		return "fine_grained"
 	case optimistic:
 		return "optimistic"
+	case lazy:
+		return "lazy"
 	default:
 		panic("unknown setKind")
 	}
@@ -43,6 +46,8 @@ func (factory) new(k setKind) Set {
 		return NewFineGrainedSyncSet()
 	case optimistic:
 		return NewOptimisticSyncSet()
+	case lazy:
+		return NewLazySyncSet()
 	default:
 		panic("unknown setKind")
 	}
@@ -54,9 +59,10 @@ func TestSequential(t *testing.T) {
 
 	kinds := []setKind{
 		sequential,
-		fineGrained,
 		coarseGrained,
+		fineGrained,
 		optimistic,
+		lazy,
 	}
 
 	for _, k := range kinds {
@@ -144,6 +150,8 @@ func TestConcurrent(t *testing.T) {
 	kinds := []setKind{
 		coarseGrained,
 		fineGrained,
+		optimistic,
+		lazy,
 	}
 
 	for _, k := range kinds {
