@@ -5,9 +5,12 @@ import (
 	"math/rand"
 	"sync"
 	"testing"
+	"time"
 )
 
 func BenchmarkSet(b *testing.B) {
+	rand.Seed(time.Now().Unix())
+
 	kinds := []setKind{
 		coarseGrained,
 		fineGrained,

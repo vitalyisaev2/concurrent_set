@@ -13,6 +13,7 @@ const (
 	sequential setKind = iota + 1
 	coarseGrained
 	fineGrained
+	optimistic
 )
 
 func (k setKind) String() string {
@@ -23,8 +24,10 @@ func (k setKind) String() string {
 		return "coarse_grained"
 	case fineGrained:
 		return "fine_grained"
+	case optimistic:
+		return "optimistic"
 	default:
-		panic("unknown set setKind")
+		panic("unknown setKind")
 	}
 }
 
@@ -38,8 +41,10 @@ func (factory) new(k setKind) Set {
 		return NewCoarseGrainedSyncSet()
 	case fineGrained:
 		return NewFineGrainedSyncSet()
+	case optimistic:
+		return NewOptimisticSyncSet()
 	default:
-		panic("unknown set setKind")
+		panic("unknown setKind")
 	}
 }
 
@@ -51,6 +56,7 @@ func TestSequential(t *testing.T) {
 		sequential,
 		fineGrained,
 		coarseGrained,
+		optimistic,
 	}
 
 	for _, k := range kinds {
