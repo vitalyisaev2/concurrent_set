@@ -97,12 +97,11 @@ def render_plot(df: pd.DataFrame, scenario: str, data_source: str):
     crop = df[df["data_source"] == data_source][["threads", "set_kind", "benchmark_time"]]
     pivot = crop.pivot(columns=['set_kind'], values=['benchmark_time'], index='threads')
     pivot = pivot.droplevel(0, axis=1)
-    print(pivot)
     # axes = pivot.plot(kind="line", title="Sort.{}".format(method_name), logx=True, logy=True)
     axes = pivot.plot(
         kind="line",
         title=f"Scenario: {scenario}, data_source: {data_source}",
-        ylim=(0, 750000),
+        logy=True,
         xlabel="threads",
         ylabel="nanoseconds",
         legend="True",
