@@ -38,7 +38,7 @@ func BenchmarkSet(b *testing.B) {
 						b.Run(kind.String(), func(b *testing.B) {
 							params := &benchParams{kind: kind, threads: threadNumber, dataSource: ds}
 
-							b.Run("concurrent insertion", func(b *testing.B) {
+							b.Run("insertion", func(b *testing.B) {
 								benchConcurrentInsertion(b, params)
 							})
 						})

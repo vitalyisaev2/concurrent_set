@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script rendering Go benchmark results into plots
+Script to render Go benchmark results into plots
 """
 
 import datetime
@@ -15,13 +15,13 @@ pd.set_option('display.width', 140)
 class BenchmarkLine(object):
     description: str
     run_number: int
-    runtime: float
+    benchmark_time: float
     units: str
 
     def __init__(self, description: str, run_number: int, runtime: float, units: str):
         self.description = description
         self.run_number = run_number
-        self.runtime = runtime
+        self.benchmark_time = runtime
 
         if units != "ns/op":
             raise ValueError("FIXME: new unit")
@@ -42,14 +42,14 @@ class BenchmarkCase(object):
     data_source: str
     set_kind: str
     scenario: str
-    runtime: datetime.timedelta
+    benchmark_time: pd.Timedelta
 
-    def __init__(self, threads: int, data_source: str, set_kind: str, scenario: str, runtime: datetime.timedelta):
+    def __init__(self, threads: int, data_source: str, set_kind: str, scenario: str, benchmark_time: datetime.timedelta):
         self.threads = threads
         self.data_source = data_source
         self.set_kind = set_kind
         self.scenario = scenario
-        self.runtime = runtime
+        self.benchmark_time = benchmark_time
 
     @classmethod
     def from_benchmark_line(cls, line: BenchmarkLine):
@@ -61,10 +61,10 @@ class BenchmarkCase(object):
         threads = int(split[1].split("_")[0])
         data_source = split[2]
         set_kind = split[3]
-        scenario = split[4]
+        scenario = split[4].split("-")[0]  # crop tail with a number of CPU cores
 
         if line.units == "ns/op":
-            runtime = datetime.timedelta(microseconds=line.runtime / 1000)
+            runtime = pd.Timedelta(line.benchmark_time, unit='ns')
         else:
             raise ValueError("FIXME: new unit")
 
@@ -84,22 +84,33 @@ def parse_report(src_file: str) -> pd.DataFrame:
     return df
 
 
-def render_plot(df: pd.DataFrame, scenario: str, data_source: str):
-    x = df[df["data_source"] == data_source][["threads", "set_kind", "runtime"]]
-    pivot = x.pivot(columns=['set_kind'], values=['runtime'], index='threads')
+def render_plots(df: pd.DataFrame):
+    scenarios = df['scenario'].unique()
+    data_sources = df['data_source'].unique()
 
+    for scenario in scenarios:
+        for data_source in data_sources:
+            render_plot(df, scenario, data_source)
+
+
+def render_plot(df: pd.DataFrame, scenario: str, data_source: str):
+    crop = df[df["data_source"] == data_source][["threads", "set_kind", "benchmark_time"]]
+    pivot = crop.pivot(columns=['set_kind'], values=['benchmark_time'], index='threads')
     # axes = pivot.plot(kind="line", title="Sort.{}".format(method_name), logx=True, logy=True)
-    axes = pivot.plot(kind="line", title="Scenario: {}".format(scenario))
+    axes = pivot.plot(kind="line", title=f"Scenario: {scenario}, data_source: {data_source}")
+    print(pivot)
     axes.set_ylabel("nanoseconds")
-    lgd = axes.legend(loc='center right', bbox_to_anchor=(1.5, 0.5))
-    axes.figure.savefig("/tmp/" + scenario + ".svg",
-                        bbox_extra_artists=(lgd,), bbox_inches='tight')
+    # axes.set_ylabel()
+    # lgd = axes.legend(loc='center right', bbox_to_anchor=(1.5, 0.5))
+    lgd = axes.legend(loc='best')
+    filename = f'./{scenario}_{data_source}.svg'
+    axes.figure.savefig(filename, bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 
 def main():
     src_file = "report.txt"
     df = parse_report(src_file)
-    render_plot(df, "ololo", "ascending_array_input")
+    render_plots(df)
 
 
 if __name__ == "__main__":
