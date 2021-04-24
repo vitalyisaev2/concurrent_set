@@ -97,18 +97,23 @@ def render_plot(df: pd.DataFrame, scenario: str, data_source: str):
     crop = df[df["data_source"] == data_source][["threads", "set_kind", "benchmark_time"]]
     pivot = crop.pivot(columns=['set_kind'], values=['benchmark_time'], index='threads')
     # axes = pivot.plot(kind="line", title="Sort.{}".format(method_name), logx=True, logy=True)
-    axes = pivot.plot(kind="line", title=f"Scenario: {scenario}, data_source: {data_source}")
-    print(pivot)
+    axes = pivot.plot(
+        kind="line",
+        title=f"Scenario: {scenario}, data_source: {data_source}",
+        ylim=(0, 750000),
+        xlabel="threads",
+        ylabel="nanoseconds",
+        legend="True",
+        colormap="winter",
+    )
     axes.set_ylabel("nanoseconds")
-    # axes.set_ylabel()
-    # lgd = axes.legend(loc='center right', bbox_to_anchor=(1.5, 0.5))
     lgd = axes.legend(loc='best')
-    filename = f'./{scenario}_{data_source}.svg'
+    filename = f'./report/{scenario}_{data_source}.svg'
     axes.figure.savefig(filename, bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 
 def main():
-    src_file = "report.txt"
+    src_file = "report/report.txt"
     df = parse_report(src_file)
     render_plots(df)
 
