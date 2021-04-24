@@ -14,6 +14,7 @@ func BenchmarkSet(b *testing.B) {
 	kinds := []setKind{
 		coarseGrained,
 		fineGrained,
+		optimistic,
 	}
 
 	const inputLength = 2 << 9
