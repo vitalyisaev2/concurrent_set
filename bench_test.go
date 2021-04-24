@@ -24,7 +24,7 @@ func BenchmarkSet(b *testing.B) {
 		{name: "shuffled_array", data: makeShuffledArray(inputLength)},
 	}
 
-	threadNumbers := []int{1, 2, 4, 8, 16, 32, 64}
+	threadNumbers := []int{2, 4, 8, 16, 32, 64, 128}
 
 	// combination of parameters
 	for _, threadNumber := range threadNumbers {
@@ -43,6 +43,7 @@ func BenchmarkSet(b *testing.B) {
 
 							b.Run("insert", func(b *testing.B) { benchInsert(b, params) })
 							b.Run("contains", func(b *testing.B) { benchContains(b, params) })
+							b.Run("insert_and_contains", func(b *testing.B) { benchInsertAndContains(b, params) })
 						})
 					}
 				})
@@ -84,7 +85,6 @@ func benchInsert(b *testing.B, params *benchParams) {
 	b.Helper()
 
 	f := factory{}
-
 	set := f.new(params.kind)
 
 	wg := sync.WaitGroup{}
@@ -92,6 +92,7 @@ func benchInsert(b *testing.B, params *benchParams) {
 
 	b.ResetTimer()
 
+	// all threads are inserting
 	for i := 0; i < params.threads; i++ {
 		go func() {
 			defer wg.Done()
@@ -110,7 +111,6 @@ func benchContains(b *testing.B, params *benchParams) {
 	b.Helper()
 
 	f := factory{}
-
 	set := f.new(params.kind)
 
 	// fill the set
@@ -123,6 +123,7 @@ func benchContains(b *testing.B, params *benchParams) {
 
 	b.ResetTimer()
 
+	// all threads are seeking for the value
 	for i := 0; i < params.threads; i++ {
 		go func() {
 			defer wg.Done()
@@ -137,5 +138,46 @@ func benchContains(b *testing.B, params *benchParams) {
 			}
 		}()
 	}
+	wg.Wait()
+}
+
+func benchInsertAndContains(b *testing.B, params *benchParams) {
+	b.Helper()
+
+	f := factory{}
+	set := f.new(params.kind)
+
+	wg := sync.WaitGroup{}
+	wg.Add(params.threads)
+
+	b.ResetTimer()
+
+	// half threads are inserting
+	for i := 0; i < params.threads/2; i++ {
+		go func() {
+			defer wg.Done()
+
+			for j := 0; j < b.N; j++ {
+				ix := j % len(params.dataSource.data)
+				val := params.dataSource.data[ix]
+				set.Insert(val)
+			}
+		}()
+	}
+
+	// another half is seeking for values
+	for i := 0; i < params.threads/2; i++ {
+		go func() {
+			defer wg.Done()
+
+			for j := 0; j < b.N; j++ {
+				ix := j % len(params.dataSource.data)
+				val := params.dataSource.data[ix]
+				// don't check the result cause set still can be empty
+				set.Contains(val)
+			}
+		}()
+	}
+
 	wg.Wait()
 }
