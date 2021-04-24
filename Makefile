@@ -5,6 +5,9 @@ test:
 	go test -count=1 -v ./test
 
 bench:
-	go test -bench . > ./report/report.txt
+	go test -bench . | tee ./report/report.txt
 
-.PHONY: test
+report:
+	./report.py
+
+.PHONY: report

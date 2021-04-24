@@ -94,7 +94,8 @@ def render_plots(df: pd.DataFrame):
 
 
 def render_plot(df: pd.DataFrame, scenario: str, data_source: str):
-    crop = df[df["data_source"] == data_source][["threads", "set_kind", "benchmark_time"]]
+    crop = df[df["data_source"] == data_source][df["scenario"] == scenario]
+    crop = crop[["threads", "set_kind", "benchmark_time"]] # drop extra columns
     print(crop)
     pivot = crop.pivot(columns='set_kind', values='benchmark_time', index='threads')
     print(pivot)

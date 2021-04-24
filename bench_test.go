@@ -37,9 +37,8 @@ func BenchmarkSet(b *testing.B) {
 						b.Run(kind.String(), func(b *testing.B) {
 							params := &benchParams{kind: kind, threads: threadNumber, dataSource: ds}
 
-							b.Run("insert", func(b *testing.B) {
-								benchInsert(b, params)
-							})
+							b.Run("insert", func(b *testing.B) { benchInsert(b, params) })
+							b.Run("contains", func(b *testing.B) { benchContains(b, params) })
 						})
 					}
 				})
@@ -87,6 +86,8 @@ func benchInsert(b *testing.B, params *benchParams) {
 	wg := sync.WaitGroup{}
 	wg.Add(params.threads)
 
+	b.ResetTimer()
+
 	for i := 0; i < params.threads; i++ {
 		go func() {
 			defer wg.Done()
@@ -95,6 +96,40 @@ func benchInsert(b *testing.B, params *benchParams) {
 				ix := j % len(params.dataSource.data)
 				val := params.dataSource.data[ix]
 				set.Insert(val)
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func benchContains(b *testing.B, params *benchParams) {
+	b.Helper()
+
+	f := factory{}
+
+	set := f.new(params.kind)
+
+	// fill the set
+	for _, value := range params.dataSource.data {
+		set.Insert(value)
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(params.threads)
+
+	b.ResetTimer()
+
+	for i := 0; i < params.threads; i++ {
+		go func() {
+			defer wg.Done()
+
+			for j := 0; j < b.N; j++ {
+				ix := j % len(params.dataSource.data)
+				val := params.dataSource.data[ix]
+				ok := set.Contains(val)
+				if !ok {
+					b.FailNow()
+				}
 			}
 		}()
 	}
