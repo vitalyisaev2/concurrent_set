@@ -16,9 +16,8 @@ func BenchmarkSet(b *testing.B) {
 	const inputLength = 2 << 9
 
 	dataSources := []*dataSource{
-		{name: "ascending_array_input", data: makeAscendingArray(inputLength)},
-		{name: "descending_array_input", data: makeDescendingArray(inputLength)},
-		{name: "shuffled_array_input", data: makeShuffledArray(inputLength)},
+		{name: "ascending_array", data: makeAscendingArray(inputLength)},
+		{name: "shuffled_array", data: makeShuffledArray(inputLength)},
 	}
 
 	threadNumbers := []int{1, 2, 4, 8, 16, 32, 64}
@@ -38,8 +37,8 @@ func BenchmarkSet(b *testing.B) {
 						b.Run(kind.String(), func(b *testing.B) {
 							params := &benchParams{kind: kind, threads: threadNumber, dataSource: ds}
 
-							b.Run("insertion", func(b *testing.B) {
-								benchConcurrentInsertion(b, params)
+							b.Run("insert", func(b *testing.B) {
+								benchInsert(b, params)
 							})
 						})
 					}
@@ -63,15 +62,6 @@ func makeAscendingArray(length int) []int {
 	return output
 }
 
-func makeDescendingArray(length int) []int {
-	output := make([]int, length)
-	for i := 0; i < length; i++ {
-		output[length-i-1] = i
-	}
-
-	return output
-}
-
 func makeShuffledArray(length int) []int {
 	output := makeAscendingArray(length)
 	rand.Shuffle(length, func(i, j int) {
@@ -87,7 +77,7 @@ type benchParams struct {
 	kind       setKind
 }
 
-func benchConcurrentInsertion(b *testing.B, params *benchParams) {
+func benchInsert(b *testing.B, params *benchParams) {
 	b.Helper()
 
 	f := factory{}
