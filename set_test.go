@@ -158,12 +158,12 @@ func TestConcurrent(t *testing.T) {
 		k := k
 
 		const (
-			threads = 32
+			threads = 8
 			items   = 1000
 		)
 
 		t.Run(k.String(), func(t *testing.T) {
-			t.Run("concurrent insertion", func(t *testing.T) {
+			t.Run("concurrent operations", func(t *testing.T) {
 				set := f.new(k)
 
 				wg := sync.WaitGroup{}
@@ -187,6 +187,22 @@ func TestConcurrent(t *testing.T) {
 				for j := 0; j < items; j++ {
 					require.True(t, set.Contains(j), j)
 				}
+
+				wg.Add(threads)
+
+				// every thread tries to run concurrent removals
+				for i := 0; i < threads; i++ {
+					go func() {
+						defer wg.Done()
+
+						for j := 0; j < items; j++ {
+							// result is not important
+							set.Remove(j)
+						}
+					}()
+				}
+
+				wg.Wait()
 			})
 		})
 	}

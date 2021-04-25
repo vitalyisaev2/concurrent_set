@@ -11,6 +11,15 @@ type optimisticSyncSet struct {
 }
 
 func (s *optimisticSyncSet) Insert(value int) bool {
+	for {
+		result, repeat := s.insertLoopBody(value)
+		if !repeat {
+			return result
+		}
+	}
+}
+
+func (s *optimisticSyncSet) insertLoopBody(value int) (result bool, repeat bool) {
 	pred := s.head
 	curr := pred.next
 
@@ -19,51 +28,70 @@ func (s *optimisticSyncSet) Insert(value int) bool {
 		curr = curr.next
 	}
 
-	pred.mutex.Lock()
-	curr.mutex.Lock()
+	pred.Lock()
+	curr.Lock()
 
 	defer func() {
-		curr.mutex.Unlock()
-		pred.mutex.Unlock()
+		curr.Unlock()
+		pred.Unlock()
 	}()
 
 	if s.validate(pred, curr) {
 		if curr.value == value {
-			return false
-		} else {
-			newNode := &syncNode{value: value, next: curr}
-			pred.next = newNode
+			return false, false
 		}
+
+		newNode := &syncNode{value: value, next: curr}
+		pred.next = newNode
+		return true, false
 	}
 
-	return true
+	return false, true
 }
 
 func (s *optimisticSyncSet) Contains(value int) bool {
+	for {
+		result, repeat := s.containsLoopBody(value)
+		if !repeat {
+			return result
+		}
+	}
+}
+
+func (s *optimisticSyncSet) containsLoopBody(value int) (result bool, repeat bool) {
 	pred := s.head
-	curr := s.head.next
+	curr := pred.next
 
 	for curr.value < value {
 		pred = curr
 		curr = curr.next
 	}
 
-	pred.mutex.Lock()
-	curr.mutex.Lock()
+	pred.Lock()
+	curr.Lock()
 
 	defer func() {
-		curr.mutex.Unlock()
-		pred.mutex.Unlock()
+		curr.Unlock()
+		pred.Unlock()
 	}()
 
 	if s.validate(pred, curr) {
-		return curr.value == value
+		return curr.value == value, false
 	}
 
-	return false
+	return false, true
 }
 
 func (s *optimisticSyncSet) Remove(value int) bool {
+	for {
+		result, repeat := s.removeLoopBody(value)
+		if !repeat {
+			return result
+		}
+	}
+}
+
+func (s *optimisticSyncSet) removeLoopBody(value int) (result, repeat bool) {
 	pred := s.head
 	curr := s.head.next
 
@@ -72,23 +100,23 @@ func (s *optimisticSyncSet) Remove(value int) bool {
 		curr = curr.next
 	}
 
-	pred.mutex.Lock()
-	curr.mutex.Lock()
+	pred.Lock()
+	curr.Lock()
 
 	defer func() {
-		curr.mutex.Unlock()
-		pred.mutex.Unlock()
+		curr.Unlock()
+		pred.Unlock()
 	}()
 
 	if s.validate(pred, curr) {
 		if curr.value == value {
 			pred.next = curr.next
-
-			return true
+			return true, false
 		}
+		return false, false
 	}
 
-	return false
+	return false, true
 }
 
 func (s *optimisticSyncSet) validate(pred, curr *syncNode) bool {

@@ -6,9 +6,9 @@ import (
 )
 
 type lazySyncNode struct {
+	sync.Mutex
 	next   *lazySyncNode
 	value  int
-	mutex  sync.Mutex
 	marked bool
 }
 
@@ -17,6 +17,15 @@ type lazySyncSet struct {
 }
 
 func (s *lazySyncSet) Insert(value int) bool {
+	for {
+		result, repeat := s.insertLoopBody(value)
+		if !repeat {
+			return result
+		}
+	}
+}
+
+func (s *lazySyncSet) insertLoopBody(value int) (result bool, repeat bool) {
 	pred := s.head
 	curr := pred.next
 
@@ -25,37 +34,70 @@ func (s *lazySyncSet) Insert(value int) bool {
 		curr = curr.next
 	}
 
-	pred.mutex.Lock()
-	curr.mutex.Lock()
+	pred.Lock()
+	curr.Lock()
 
 	defer func() {
-		curr.mutex.Unlock()
-		pred.mutex.Unlock()
+		curr.Unlock()
+		pred.Unlock()
 	}()
 
 	if s.validate(pred, curr) {
 		if curr.value == value {
-			return false
-		} else {
-			newNode := &lazySyncNode{value: value, next: curr}
-			pred.next = newNode
+			return false, false
 		}
+
+		newNode := &lazySyncNode{value: value, next: curr}
+		pred.next = newNode
+		return true, false
 	}
 
-	return true
+	return false, true
 }
 
 func (s *lazySyncSet) Contains(value int) bool {
-	curr := s.head
+	for {
+		result, repeat := s.containsLoopBody(value)
+		if !repeat {
+			return result
+		}
+	}
+}
+
+func (s *lazySyncSet) containsLoopBody(value int) (result bool, repeat bool) {
+	pred := s.head
+	curr := pred.next
 
 	for curr.value < value {
+		pred = curr
 		curr = curr.next
 	}
 
-	return curr.value == value && !curr.marked
+	pred.Lock()
+	curr.Lock()
+
+	defer func() {
+		curr.Unlock()
+		pred.Unlock()
+	}()
+
+	if s.validate(pred, curr) {
+		return curr.value == value, false
+	}
+
+	return false, true
 }
 
 func (s *lazySyncSet) Remove(value int) bool {
+	for {
+		result, repeat := s.removeLoopBody(value)
+		if !repeat {
+			return result
+		}
+	}
+}
+
+func (s *lazySyncSet) removeLoopBody(value int) (result, repeat bool) {
 	pred := s.head
 	curr := s.head.next
 
@@ -64,24 +106,24 @@ func (s *lazySyncSet) Remove(value int) bool {
 		curr = curr.next
 	}
 
-	pred.mutex.Lock()
-	curr.mutex.Lock()
+	pred.Lock()
+	curr.Lock()
 
 	defer func() {
-		curr.mutex.Unlock()
-		pred.mutex.Unlock()
+		curr.Unlock()
+		pred.Unlock()
 	}()
 
 	if s.validate(pred, curr) {
 		if curr.value == value {
 			curr.marked = true
 			pred.next = curr.next
-
-			return true
+			return true, false
 		}
+		return false, false
 	}
 
-	return false
+	return false, true
 }
 
 func (s *lazySyncSet) validate(pred, curr *lazySyncNode) bool {

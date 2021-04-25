@@ -6,9 +6,9 @@ import (
 )
 
 type syncNode struct {
+	sync.Mutex
 	next  *syncNode
 	value int
-	mutex sync.Mutex
 }
 
 var _ Set = (*fineGrainedSyncSet)(nil)
@@ -19,25 +19,25 @@ type fineGrainedSyncSet struct {
 
 func (s *fineGrainedSyncSet) Insert(value int) bool {
 	// it looks impossible to use defers here
-	s.head.mutex.Lock()
+	s.head.Lock()
 
 	pred := s.head
 	curr := pred.next
 
-	curr.mutex.Lock()
+	curr.Lock()
 
 	for curr.value < value {
-		pred.mutex.Unlock()
+		pred.Unlock()
 
 		pred = curr
-		curr = pred.next
+		curr = curr.next
 
-		curr.mutex.Lock()
+		curr.Lock()
 	}
 
 	defer func() {
-		curr.mutex.Unlock()
-		pred.mutex.Unlock()
+		curr.Unlock()
+		pred.Unlock()
 	}()
 
 	if curr.value == value {
@@ -51,48 +51,48 @@ func (s *fineGrainedSyncSet) Insert(value int) bool {
 }
 
 func (s fineGrainedSyncSet) Contains(value int) bool {
-	s.head.mutex.Lock()
+	s.head.Lock()
 
 	pred := s.head
 	curr := pred.next
 
-	curr.mutex.Lock()
+	curr.Lock()
 
 	for curr.value < value {
-		pred.mutex.Unlock()
+		pred.Unlock()
 
 		pred = curr
-		curr = pred.next
+		curr = curr.next
 
-		curr.mutex.Lock()
+		curr.Lock()
 	}
 
 	defer func() {
-		curr.mutex.Unlock()
-		pred.mutex.Unlock()
+		curr.Unlock()
+		pred.Unlock()
 	}()
 
 	return curr.value == value
 }
 
 func (s *fineGrainedSyncSet) Remove(value int) bool {
-	s.head.mutex.Lock()
+	s.head.Lock()
 
 	pred := s.head
-	curr := s.head.next
+	curr := pred.next
 
-	curr.mutex.Lock()
+	curr.Lock()
 
 	for curr.value < value {
-		pred.mutex.Unlock()
+		pred.Unlock()
 		pred = curr
 		curr = pred.next
-		curr.mutex.Lock()
+		curr.Lock()
 	}
 
 	defer func() {
-		curr.mutex.Unlock()
-		pred.mutex.Unlock()
+		curr.Unlock()
+		pred.Unlock()
 	}()
 
 	if curr.value == value {
