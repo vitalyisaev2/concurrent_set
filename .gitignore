@@ -2,3 +2,4 @@
 venv
 report/report.txt
 __pycache__
+.clang-format
