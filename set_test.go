@@ -1,8 +1,11 @@
 package set
 
 import (
+	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"unsafe"
 
 	"github.com/stretchr/testify/require"
 )
@@ -205,5 +208,104 @@ func TestConcurrent(t *testing.T) {
 				wg.Wait()
 			})
 		})
+	}
+}
+
+const mask uintptr = 1
+
+type nodeNonBlocking struct {
+	val  int
+	next *nodeNonBlocking
+}
+
+type atomicMarkableReference struct {
+	value uintptr
+}
+
+func (amr *atomicMarkableReference) getNode() *nodeNonBlocking {
+	return (*nodeNonBlocking)(unsafe.Pointer((atomic.LoadUintptr(&amr.value)) & ^mask))
+}
+
+func (amr *atomicMarkableReference) getMark() bool {
+	current := atomic.LoadUintptr(&amr.value) & mask
+	switch current {
+	case 1:
+		return true
+	case 0:
+		return false
+	default:
+		panic(current)
+	}
+}
+
+func (amr *atomicMarkableReference) getBoth() (*nodeNonBlocking, bool) {
+	current := atomic.LoadUintptr(&amr.value)
+	mark := current & mask
+	return (*nodeNonBlocking)(unsafe.Pointer(current & ^mask)), uintptrToBool(mark)
+}
+
+func newAtomicMarkableReference(node *nodeNonBlocking, mark bool) *atomicMarkableReference {
+	amr := &atomicMarkableReference{
+		value: (uintptr(unsafe.Pointer(node)) & ^mask) | boolToUintptr(mark),
+	}
+
+	return amr
+}
+
+func TestAtomicMarkableReference(t *testing.T) {
+	t.Run("construction", func(t *testing.T) {
+
+		testCases := []struct {
+			mark bool
+			val  int
+		}{
+			{
+				mark: false,
+				val:  10,
+			},
+			{
+				mark: true,
+				val:  10,
+			},
+		}
+
+		for i, tc := range testCases {
+			tc := tc
+
+			t.Run(fmt.Sprint(i), func(t *testing.T) {
+				node := &nodeNonBlocking{val: tc.val}
+
+				amr := newAtomicMarkableReference(node, tc.mark)
+				amr.getNode()
+
+				require.Equal(t, node, amr.getNode())
+				require.Equal(t, tc.val, amr.getNode().val)
+				require.Equal(t, tc.mark, amr.getMark())
+
+				nodeRead, markRead := amr.getBoth()
+				require.Equal(t, node, nodeRead)
+				require.Equal(t, tc.val, nodeRead.val)
+				require.Equal(t, tc.mark, markRead)
+			})
+		}
+	})
+}
+
+func boolToUintptr(b bool) uintptr {
+	if b {
+		return 1
+	}
+
+	return 0
+}
+
+func uintptrToBool(val uintptr) bool {
+	switch val {
+	case 0:
+		return false
+	case 1:
+		return true
+	default:
+		panic(val)
 	}
 }
