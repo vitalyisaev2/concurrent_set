@@ -27,26 +27,26 @@ func TestAtomicMarkableReference(t *testing.T) {
 			tc := tc
 
 			t.Run(fmt.Sprint(i), func(t *testing.T) {
-				node := &nodeNonBlocking{val: tc.val}
+				node := &nonBlockingNode{value: tc.val}
 
 				amr := newAtomicMarkableReference(node, tc.mark)
 				amr.getNode()
 
 				require.Equal(t, node, amr.getNode())
-				require.Equal(t, tc.val, amr.getNode().val)
+				require.Equal(t, tc.val, amr.getNode().value)
 				require.Equal(t, tc.mark, amr.getMark())
 
 				nodeRead, markRead := amr.getBoth()
 				require.Equal(t, node, nodeRead)
-				require.Equal(t, tc.val, nodeRead.val)
+				require.Equal(t, tc.val, nodeRead.value)
 				require.Equal(t, tc.mark, markRead)
 			})
 		}
 	})
 
 	t.Run("mutation", func(t *testing.T) {
-		node1 := &nodeNonBlocking{val: 1}
-		node2 := &nodeNonBlocking{val: 2}
+		node1 := &nonBlockingNode{value: 1}
+		node2 := &nonBlockingNode{value: 2}
 		mark1 := true
 		mark2 := false
 
