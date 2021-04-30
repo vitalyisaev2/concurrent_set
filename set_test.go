@@ -3,9 +3,7 @@ package set
 import (
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"testing"
-	"unsafe"
 
 	"github.com/stretchr/testify/require"
 )
@@ -211,50 +209,8 @@ func TestConcurrent(t *testing.T) {
 	}
 }
 
-const mask uintptr = 1
-
-type nodeNonBlocking struct {
-	val  int
-	next *nodeNonBlocking
-}
-
-type atomicMarkableReference struct {
-	value uintptr
-}
-
-func (amr *atomicMarkableReference) getNode() *nodeNonBlocking {
-	return (*nodeNonBlocking)(unsafe.Pointer((atomic.LoadUintptr(&amr.value)) & ^mask))
-}
-
-func (amr *atomicMarkableReference) getMark() bool {
-	current := atomic.LoadUintptr(&amr.value) & mask
-	switch current {
-	case 1:
-		return true
-	case 0:
-		return false
-	default:
-		panic(current)
-	}
-}
-
-func (amr *atomicMarkableReference) getBoth() (*nodeNonBlocking, bool) {
-	current := atomic.LoadUintptr(&amr.value)
-	mark := current & mask
-	return (*nodeNonBlocking)(unsafe.Pointer(current & ^mask)), uintptrToBool(mark)
-}
-
-func newAtomicMarkableReference(node *nodeNonBlocking, mark bool) *atomicMarkableReference {
-	amr := &atomicMarkableReference{
-		value: (uintptr(unsafe.Pointer(node)) & ^mask) | boolToUintptr(mark),
-	}
-
-	return amr
-}
-
 func TestAtomicMarkableReference(t *testing.T) {
 	t.Run("construction", func(t *testing.T) {
-
 		testCases := []struct {
 			mark bool
 			val  int
@@ -289,23 +245,18 @@ func TestAtomicMarkableReference(t *testing.T) {
 			})
 		}
 	})
-}
 
-func boolToUintptr(b bool) uintptr {
-	if b {
-		return 1
-	}
+	t.Run("mutation", func(t *testing.T) {
+		node1 := &nodeNonBlocking{val: 1}
+		node2 := &nodeNonBlocking{val: 2}
+		mark1 := true
+		mark2 := false
 
-	return 0
-}
+		amr := newAtomicMarkableReference(node1, mark1)
 
-func uintptrToBool(val uintptr) bool {
-	switch val {
-	case 0:
-		return false
-	case 1:
-		return true
-	default:
-		panic(val)
-	}
+		require.True(t, amr.compareAndSet(node1, node2, mark1, mark2))
+
+		require.Equal(t, node2, amr.getNode())
+		require.Equal(t, mark2, amr.getMark())
+	})
 }
