@@ -19,7 +19,8 @@ func (s *optimisticSyncSet) Insert(value int) bool {
 	}
 }
 
-func (s *optimisticSyncSet) insertLoopBody(value int) (result bool, repeat bool) {
+//nolint:dupl // it's better to copy-paste code than messing with inheritance
+func (s *optimisticSyncSet) insertLoopBody(value int) (result, repeat bool) {
 	pred := s.head
 	curr := pred.next
 
@@ -43,6 +44,7 @@ func (s *optimisticSyncSet) insertLoopBody(value int) (result bool, repeat bool)
 
 		newNode := &syncNode{value: value, next: curr}
 		pred.next = newNode
+
 		return true, false
 	}
 
@@ -58,7 +60,7 @@ func (s *optimisticSyncSet) Contains(value int) bool {
 	}
 }
 
-func (s *optimisticSyncSet) containsLoopBody(value int) (result bool, repeat bool) {
+func (s *optimisticSyncSet) containsLoopBody(value int) (result, repeat bool) {
 	pred := s.head
 	curr := pred.next
 
@@ -111,8 +113,10 @@ func (s *optimisticSyncSet) removeLoopBody(value int) (result, repeat bool) {
 	if s.validate(pred, curr) {
 		if curr.value == value {
 			pred.next = curr.next
+
 			return true, false
 		}
+
 		return false, false
 	}
 

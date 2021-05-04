@@ -15,6 +15,7 @@ const (
 	fineGrained
 	optimistic
 	lazy
+	nonBlocking
 )
 
 func (k setKind) String() string {
@@ -29,6 +30,8 @@ func (k setKind) String() string {
 		return "optimistic"
 	case lazy:
 		return "lazy"
+	case nonBlocking:
+		return "nonblocking"
 	default:
 		panic("unknown setKind")
 	}
@@ -48,6 +51,8 @@ func (factory) new(k setKind) Set {
 		return NewOptimisticSyncSet()
 	case lazy:
 		return NewLazySyncSet()
+	case nonBlocking:
+		return NewNonBlockingSyncSet()
 	default:
 		panic("unknown setKind")
 	}
@@ -63,6 +68,13 @@ func TestSequential(t *testing.T) {
 		fineGrained,
 		optimistic,
 		lazy,
+		/*
+			FIXME: nonblocking implementation seems to be broken. Look at this code:
+			https://github.com/gramoli/synchrobench/blob/master/java/src/linkedlists/lockfree/NonBlockingLinkedListSet.java#L43
+			This line causes nil pointer dereference when trying to add first item into the empty set
+			(with only two sentinel nodes).
+		*/
+		// nonBlocking,
 	}
 
 	for _, k := range kinds {

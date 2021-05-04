@@ -6,8 +6,8 @@ import (
 )
 
 type syncNode struct {
+	next *syncNode
 	sync.Mutex
-	next  *syncNode
 	value int
 }
 

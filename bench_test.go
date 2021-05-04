@@ -133,8 +133,9 @@ func benchContains(b *testing.B, params *benchParams) {
 				ix := j % len(params.dataSource.data)
 				val := params.dataSource.data[ix]
 				ok := set.Contains(val)
+
 				if !ok {
-					b.FailNow()
+					panic("invariant violation")
 				}
 			}
 		}()
