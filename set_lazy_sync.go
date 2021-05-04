@@ -6,9 +6,9 @@ import (
 )
 
 type lazySyncNode struct {
+	next  *lazySyncNode
+	value int
 	sync.Mutex
-	next   *lazySyncNode
-	value  int
 	marked bool
 }
 
@@ -25,7 +25,8 @@ func (s *lazySyncSet) Insert(value int) bool {
 	}
 }
 
-func (s *lazySyncSet) insertLoopBody(value int) (result bool, repeat bool) {
+//nolint:dupl // it's better to copy-paste code than messing with inheritance
+func (s *lazySyncSet) insertLoopBody(value int) (result, repeat bool) {
 	pred := s.head
 	curr := pred.next
 
@@ -49,6 +50,7 @@ func (s *lazySyncSet) insertLoopBody(value int) (result bool, repeat bool) {
 
 		newNode := &lazySyncNode{value: value, next: curr}
 		pred.next = newNode
+
 		return true, false
 	}
 
@@ -64,7 +66,7 @@ func (s *lazySyncSet) Contains(value int) bool {
 	}
 }
 
-func (s *lazySyncSet) containsLoopBody(value int) (result bool, repeat bool) {
+func (s *lazySyncSet) containsLoopBody(value int) (result, repeat bool) {
 	pred := s.head
 	curr := pred.next
 
@@ -118,8 +120,10 @@ func (s *lazySyncSet) removeLoopBody(value int) (result, repeat bool) {
 		if curr.value == value {
 			curr.marked = true
 			pred.next = curr.next
+
 			return true, false
 		}
+
 		return false, false
 	}
 

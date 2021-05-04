@@ -9,8 +9,8 @@ import (
 const mask uintptr = 1
 
 type nonBlockingNode struct {
-	value int
 	next  *atomicMarkableReference
+	value int
 }
 
 type atomicMarkableReference struct {
@@ -36,12 +36,14 @@ func (amr *atomicMarkableReference) getMark() bool {
 func (amr *atomicMarkableReference) getBoth() (*nonBlockingNode, bool) {
 	current := atomic.LoadUintptr(&amr.value)
 	mark := current & mask
+
 	return (*nonBlockingNode)(unsafe.Pointer(current & ^mask)), uintptrToBool(mark)
 }
 
 func (amr *atomicMarkableReference) compareAndSet(expectedNode, desiredNode *nonBlockingNode, expectedMark, desiredMark bool) bool {
 	expected := amr.combine(expectedNode, expectedMark)
 	desired := amr.combine(desiredNode, desiredMark)
+
 	return atomic.CompareAndSwapUintptr(&amr.value, expected, desired)
 }
 
@@ -91,6 +93,7 @@ LOOP:
 		pred = head
 		curr = pred.next.getNode()
 		for {
+			// FIXME: you can't find succ if there are only two sentinel nodes in set
 			succ, marked = curr.next.getBoth()
 			for marked {
 				snip = pred.next.compareAndSet(curr, succ, false, false)
@@ -157,15 +160,18 @@ func (s *nonBlockingSet) Remove(value int) bool {
 
 		succ := curr.next.getNode()
 		snip := curr.next.compareAndSet(succ, succ, false, true)
+
 		if !snip {
 			continue
 		}
 
 		pred.next.compareAndSet(curr, succ, false, false)
+
 		return true
 	}
 }
 
+// NewNonBlockingSyncSet builds wait-free implementation of set.
 func NewNonBlockingSyncSet() Set {
 	s := &nonBlockingSet{}
 	s.head = &nonBlockingNode{value: -math.MaxInt64}
