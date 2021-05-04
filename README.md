@@ -48,4 +48,3 @@ In each benchmark, every thread is trying to insert/seek/remove the *full* input
 * `LazySyncSet` expectedly showed the best results in benchmarks performing set mutations (write, delete).
 * When it comes to read-only method `Contains`, `CoarseGrainedSyncSet` wins because it acts as wait-free data structure (due to `sync.RWMutex`),
   and it's faster than optimistic implementations because it doesn't need to *validate* the discovered node.
-* Unfortunately I wasn't able to debug `NonBlockingSyncSet`. See my comments to `set_nonblocking.go`.
