@@ -1,5 +1,12 @@
 package set
 
+/*
+	FIXME: nonblocking implementation seems to be broken. Look at this code:
+	https://github.com/gramoli/synchrobench/blob/master/java/src/linkedlists/lockfree/NonBlockingLinkedListSet.java#L43
+	This line causes nil pointer dereference when trying to add first item into the empty set
+	(with only two sentinel nodes).
+*/
+
 import (
 	"math"
 	"sync/atomic"

@@ -2,12 +2,19 @@
 This repository contains benchmarks for different implementations of linked list based concurrent set. 
 The algorithms are taken from The Art of Multiprocessor Programming, 2nd edition, 2021, by Herlihy, Shavit, Luchangco and Spear.
 
-Implementations of concurrent set to benchmark:
+1. [Implementations](#Implementations)
+2. [Benchmarks](#Benchmarks)
+3. [Conclusions](#Conclusions)
+
+## Implementations
+
 - `CoarseGrainedSyncSet`
 - `FineGrainedSyncSet`
 - `OptimisticSyncSet`
 - `LazySyncSet`
 - `NonblockingSyncSet` (temporarily disabled due to unclear parts of published algorithm by Herlihy-Shavit)
+
+## Benchmarks
 
 Two arrays are provided for each benchmark case:
 
@@ -15,8 +22,6 @@ Two arrays are provided for each benchmark case:
 - Shuffled array `rand.Shuffle(ascendingArray)` (1024 items total)
 
 In each benchmark, every thread is trying to insert/seek/remove the *full* input array.
-
-## Benchmarks
 
 ### Concurrent write
 - Each thread inserts items from the input array to the set.
