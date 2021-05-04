@@ -21,7 +21,7 @@ Two arrays are provided for each benchmark case:
 - Ascending array `ascendingArray := [1, ..., 1024]` (1024 items total)
 - Shuffled array `rand.Shuffle(ascendingArray)` (1024 items total)
 
-In each benchmark, every thread is trying to insert/seek/remove the *full* input array.
+In each benchmark, every thread is trying to insert/seek/remove the **full** input array.
 
 ### Concurrent write
 - Each thread inserts items from the input array to the set.
@@ -47,4 +47,4 @@ In each benchmark, every thread is trying to insert/seek/remove the *full* input
 
 * `LazySyncSet` expectedly showed the best results in benchmarks performing set mutations (write, delete).
 * When it comes to read-only method `Contains`, `CoarseGrainedSyncSet` wins because it acts as wait-free data structure (due to `sync.RWMutex`),
-  and it's faster than optimistic implementations because it doesn't need to *validate* the discovered node.
+  and it's faster than optimistic implementations because it doesn't need to **validate** the discovered node.
