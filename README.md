@@ -22,3 +22,8 @@ Two arrays are provided for each benchmark case:
 - Half of the threads are inserting 1024 items to the set, while the other half is seeking for the items.
 ![](report/insert_and_contains_ascending_array.svg)
 ![](report/insert_and_contains_shuffled_array.svg)
+
+## Concurrent write and remove
+- Half of the threads are inserting 1024 items to the set, while the other half is removing the items.
+  ![](report/insert_and_remove_ascending_array.svg)
+  ![](report/insert_and_remove_shuffled_array.svg)

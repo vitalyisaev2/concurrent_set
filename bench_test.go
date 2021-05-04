@@ -45,6 +45,7 @@ func BenchmarkSet(b *testing.B) {
 							b.Run("insert", func(b *testing.B) { benchInsert(b, params) })
 							b.Run("contains", func(b *testing.B) { benchContains(b, params) })
 							b.Run("insert_and_contains", func(b *testing.B) { benchInsertAndContains(b, params) })
+							b.Run("insert_and_remove", func(b *testing.B) { benchInsertAndRemove(b, params) })
 						})
 					}
 				})
@@ -177,6 +178,47 @@ func benchInsertAndContains(b *testing.B, params *benchParams) {
 				val := params.dataSource.data[ix]
 				// don't check the result cause set still can be empty
 				set.Contains(val)
+			}
+		}()
+	}
+
+	wg.Wait()
+}
+
+func benchInsertAndRemove(b *testing.B, params *benchParams) {
+	b.Helper()
+
+	f := factory{}
+	set := f.new(params.kind)
+
+	wg := sync.WaitGroup{}
+	wg.Add(params.threads)
+
+	b.ResetTimer()
+
+	// half threads are inserting
+	for i := 0; i < params.threads/2; i++ {
+		go func() {
+			defer wg.Done()
+
+			for j := 0; j < b.N; j++ {
+				ix := j % len(params.dataSource.data)
+				val := params.dataSource.data[ix]
+				set.Insert(val)
+			}
+		}()
+	}
+
+	// another half is seeking for values
+	for i := 0; i < params.threads/2; i++ {
+		go func() {
+			defer wg.Done()
+
+			for j := 0; j < b.N; j++ {
+				ix := j % len(params.dataSource.data)
+				val := params.dataSource.data[ix]
+				// don't check the result cause set still can be empty or value could be removed by other thread
+				set.Remove(val)
 			}
 		}()
 	}
