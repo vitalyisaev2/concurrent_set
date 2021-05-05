@@ -158,6 +158,7 @@ func TestConcurrent(t *testing.T) {
 		fineGrained,
 		optimistic,
 		lazy,
+		// nonBlocking,
 	}
 
 	for _, k := range kinds {

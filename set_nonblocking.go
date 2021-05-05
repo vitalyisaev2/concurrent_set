@@ -1,12 +1,5 @@
 package set
 
-/*
-	FIXME: nonblocking implementation seems to be broken. Look at this code:
-	https://github.com/gramoli/synchrobench/blob/master/java/src/linkedlists/lockfree/NonBlockingLinkedListSet.java#L43
-	This line causes nil pointer dereference when trying to add first item into the empty set
-	(with only two sentinel nodes).
-*/
-
 import (
 	"math"
 	"sync/atomic"
@@ -21,15 +14,19 @@ type nonBlockingNode struct {
 }
 
 type atomicMarkableReference struct {
-	value uintptr
+	ref uintptr
 }
 
 func (amr *atomicMarkableReference) getNode() *nonBlockingNode {
-	return (*nonBlockingNode)(unsafe.Pointer((atomic.LoadUintptr(&amr.value)) & ^mask))
+	if amr == nil {
+		return nil
+	}
+
+	return (*nonBlockingNode)(unsafe.Pointer(atomic.LoadUintptr(&amr.ref) & ^mask))
 }
 
 func (amr *atomicMarkableReference) getMark() bool {
-	current := atomic.LoadUintptr(&amr.value) & mask
+	current := atomic.LoadUintptr(&amr.ref) & mask
 	switch current {
 	case 1:
 		return true
@@ -41,7 +38,11 @@ func (amr *atomicMarkableReference) getMark() bool {
 }
 
 func (amr *atomicMarkableReference) getBoth() (*nonBlockingNode, bool) {
-	current := atomic.LoadUintptr(&amr.value)
+	if amr == nil {
+		return nil, false
+	}
+
+	current := atomic.LoadUintptr(&amr.ref)
 	mark := current & mask
 
 	return (*nonBlockingNode)(unsafe.Pointer(current & ^mask)), uintptrToBool(mark)
@@ -51,7 +52,7 @@ func (amr *atomicMarkableReference) compareAndSet(expectedNode, desiredNode *non
 	expected := amr.combine(expectedNode, expectedMark)
 	desired := amr.combine(desiredNode, desiredMark)
 
-	return atomic.CompareAndSwapUintptr(&amr.value, expected, desired)
+	return atomic.CompareAndSwapUintptr(&amr.ref, expected, desired)
 }
 
 func (amr *atomicMarkableReference) combine(node *nonBlockingNode, mark bool) uintptr {
@@ -78,8 +79,12 @@ func uintptrToBool(val uintptr) bool {
 }
 
 func newAtomicMarkableReference(node *nonBlockingNode, mark bool) *atomicMarkableReference {
+	if uintptr(unsafe.Pointer(node))&mask != 0 {
+		panic("low bit is not cleared")
+	}
+
 	amr := &atomicMarkableReference{}
-	amr.value = amr.combine(node, mark)
+	amr.ref = amr.combine(node, mark)
 
 	return amr
 }
@@ -112,7 +117,7 @@ LOOP:
 				succ, marked = curr.next.getBoth()
 			}
 
-			if curr.value > val {
+			if curr.value >= val {
 				return &window{pred: pred, curr: curr}
 			}
 
@@ -125,6 +130,29 @@ LOOP:
 type nonBlockingSet struct {
 	head *nonBlockingNode
 }
+
+/*
+func (s *nonBlockingSet) check(value int) {
+	curr := s.head
+	count := 0
+	for {
+		fmt.Printf("%d: %v\n", count, curr)
+
+		count++
+
+		if count > 4 {
+			panic("TOO MUCH")
+		}
+
+		next := curr.next.getNode()
+		if next == nil {
+			return
+		}
+
+		curr = next
+	}
+}
+*/
 
 func (s *nonBlockingSet) Insert(value int) bool {
 	for {
@@ -181,9 +209,14 @@ func (s *nonBlockingSet) Remove(value int) bool {
 // NewNonBlockingSyncSet builds wait-free implementation of set.
 func NewNonBlockingSyncSet() Set {
 	s := &nonBlockingSet{}
-	s.head = &nonBlockingNode{value: -math.MaxInt64}
+
+	head := &nonBlockingNode{value: math.MinInt64}
 	tail := &nonBlockingNode{value: math.MaxInt64}
-	s.head.next = newAtomicMarkableReference(tail, false)
+
+	head.next = newAtomicMarkableReference(tail, false)
+	tail.next = newAtomicMarkableReference(nil, false)
+
+	s.head = head
 
 	return s
 }

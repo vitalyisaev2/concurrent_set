@@ -2,12 +2,16 @@ package set
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestAtomicMarkableReference(t *testing.T) {
+	rand.Seed(time.Now().Unix())
+
 	t.Run("construction", func(t *testing.T) {
 		testCases := []struct {
 			mark bool
@@ -15,11 +19,11 @@ func TestAtomicMarkableReference(t *testing.T) {
 		}{
 			{
 				mark: false,
-				val:  10,
+				val:  rand.Int(),
 			},
 			{
 				mark: true,
-				val:  20,
+				val:  rand.Int(),
 			},
 		}
 
@@ -45,8 +49,8 @@ func TestAtomicMarkableReference(t *testing.T) {
 	})
 
 	t.Run("mutation", func(t *testing.T) {
-		node1 := &nonBlockingNode{value: 1}
-		node2 := &nonBlockingNode{value: 2}
+		node1 := &nonBlockingNode{value: rand.Int()}
+		node2 := &nonBlockingNode{value: rand.Int()}
 		mark1 := true
 		mark2 := false
 

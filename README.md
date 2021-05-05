@@ -12,7 +12,6 @@ The algorithms are taken from The Art of Multiprocessor Programming, 2nd edition
 - `FineGrainedSyncSet`
 - `OptimisticSyncSet`
 - `LazySyncSet`
-- `NonblockingSyncSet` (temporarily disabled due to unclear parts of published algorithm, see my [comments](https://github.com/vitalyisaev2/concurrent_set/blob/main/set_nonblocking.go#L3))
 
 ## Benchmarks
 
