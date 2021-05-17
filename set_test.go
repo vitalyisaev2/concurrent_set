@@ -63,12 +63,12 @@ func TestSequential(t *testing.T) {
 	f := factory{}
 
 	kinds := []setKind{
-		sequential,
-		coarseGrained,
-		fineGrained,
-		optimistic,
-		lazy,
-		// nonBlocking,
+		// sequential,
+		// coarseGrained,
+		// fineGrained,
+		// optimistic,
+		// lazy,
+		nonBlocking,
 	}
 
 	for _, k := range kinds {

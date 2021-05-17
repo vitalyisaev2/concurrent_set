@@ -1,6 +1,7 @@
 package set
 
 import (
+	"fmt"
 	"math"
 	"sync/atomic"
 	"unsafe"
@@ -13,8 +14,13 @@ type nonBlockingNode struct {
 	value int
 }
 
+type markableReference struct {
+	node *nonBlockingNode
+	mark bool
+}
+
 type atomicMarkableReference struct {
-	ref uintptr
+	ref uintptr // *markableReference
 }
 
 func (amr *atomicMarkableReference) getNode() *nonBlockingNode {
@@ -22,19 +28,18 @@ func (amr *atomicMarkableReference) getNode() *nonBlockingNode {
 		return nil
 	}
 
-	return (*nonBlockingNode)(unsafe.Pointer(atomic.LoadUintptr(&amr.ref) & ^mask))
+	existingRef := (*markableReference)(unsafe.Pointer(atomic.LoadUintptr(&amr.ref)))
+	fmt.Println("GET NODE", amr, existingRef)
+	return existingRef.node
 }
 
 func (amr *atomicMarkableReference) getMark() bool {
-	current := atomic.LoadUintptr(&amr.ref) & mask
-	switch current {
-	case 1:
-		return true
-	case 0:
+	if amr == nil {
 		return false
-	default:
-		panic(current)
 	}
+
+	existingRef := (*markableReference)(unsafe.Pointer(atomic.LoadUintptr(&amr.ref)))
+	return existingRef.mark
 }
 
 func (amr *atomicMarkableReference) getBoth() (*nonBlockingNode, bool) {
@@ -42,51 +47,30 @@ func (amr *atomicMarkableReference) getBoth() (*nonBlockingNode, bool) {
 		return nil, false
 	}
 
-	current := atomic.LoadUintptr(&amr.ref)
-	mark := current & mask
+	existingRef := (*markableReference)(unsafe.Pointer(atomic.LoadUintptr(&amr.ref)))
 
-	return (*nonBlockingNode)(unsafe.Pointer(current & ^mask)), uintptrToBool(mark)
+	fmt.Println("GET BOTH", amr, existingRef)
+
+	return existingRef.node, existingRef.mark
 }
 
 func (amr *atomicMarkableReference) compareAndSet(expectedNode, desiredNode *nonBlockingNode, expectedMark, desiredMark bool) bool {
-	expected := amr.combine(expectedNode, expectedMark)
-	desired := amr.combine(desiredNode, desiredMark)
-
-	return atomic.CompareAndSwapUintptr(&amr.ref, expected, desired)
-}
-
-func (amr *atomicMarkableReference) combine(node *nonBlockingNode, mark bool) uintptr {
-	return (uintptr(unsafe.Pointer(node)) & ^mask) | boolToUintptr(mark)
-}
-
-func boolToUintptr(b bool) uintptr {
-	if b {
-		return 1
-	}
-
-	return 0
-}
-
-func uintptrToBool(val uintptr) bool {
-	switch val {
-	case 0:
+	if amr == nil {
 		return false
-	case 1:
-		return true
-	default:
-		panic(val)
 	}
+
+	existingRefValue := atomic.LoadUintptr(&amr.ref)
+	existingRef := (*markableReference)(unsafe.Pointer(existingRefValue))
+
+	newRef := &markableReference{node: desiredNode, mark: desiredMark}
+	newRefValue := uintptr(unsafe.Pointer(newRef))
+
+	return existingRef.node == expectedNode && existingRef.mark == expectedMark && atomic.CompareAndSwapUintptr(&amr.ref, existingRefValue, newRefValue)
 }
 
 func newAtomicMarkableReference(node *nonBlockingNode, mark bool) *atomicMarkableReference {
-	if uintptr(unsafe.Pointer(node))&mask != 0 {
-		panic("low bit is not cleared")
-	}
-
-	amr := &atomicMarkableReference{}
-	amr.ref = amr.combine(node, mark)
-
-	return amr
+	ref := &markableReference{node: node, mark: mark}
+	return &atomicMarkableReference{ref: uintptr(unsafe.Pointer(ref))}
 }
 
 type window struct {
@@ -105,7 +89,6 @@ LOOP:
 		pred = head
 		curr = pred.next.getNode()
 		for {
-			// FIXME: you can't find succ if there are only two sentinel nodes in set
 			succ, marked = curr.next.getBoth()
 			for marked {
 				snip = pred.next.compareAndSet(curr, succ, false, false)
@@ -131,30 +114,9 @@ type nonBlockingSet struct {
 	head *nonBlockingNode
 }
 
-/*
-func (s *nonBlockingSet) check(value int) {
-	curr := s.head
-	count := 0
-	for {
-		fmt.Printf("%d: %v\n", count, curr)
-
-		count++
-
-		if count > 4 {
-			panic("TOO MUCH")
-		}
-
-		next := curr.next.getNode()
-		if next == nil {
-			return
-		}
-
-		curr = next
-	}
-}
-*/
-
 func (s *nonBlockingSet) Insert(value int) bool {
+	fmt.Println("INSERT", value)
+
 	for {
 		w := findWindow(s.head, value)
 		pred := w.pred
