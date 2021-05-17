@@ -1,13 +1,10 @@
 package set
 
 import (
-	"fmt"
 	"math"
 	"sync/atomic"
 	"unsafe"
 )
-
-const mask uintptr = 1
 
 type nonBlockingNode struct {
 	next  *atomicMarkableReference
@@ -20,7 +17,7 @@ type markableReference struct {
 }
 
 type atomicMarkableReference struct {
-	ref uintptr // *markableReference
+	ref unsafe.Pointer // *markableReference
 }
 
 func (amr *atomicMarkableReference) getNode() *nonBlockingNode {
@@ -28,8 +25,8 @@ func (amr *atomicMarkableReference) getNode() *nonBlockingNode {
 		return nil
 	}
 
-	existingRef := (*markableReference)(unsafe.Pointer(atomic.LoadUintptr(&amr.ref)))
-	fmt.Println("GET NODE", amr, existingRef)
+	existingRef := (*markableReference)(atomic.LoadPointer(&amr.ref))
+
 	return existingRef.node
 }
 
@@ -38,7 +35,8 @@ func (amr *atomicMarkableReference) getMark() bool {
 		return false
 	}
 
-	existingRef := (*markableReference)(unsafe.Pointer(atomic.LoadUintptr(&amr.ref)))
+	existingRef := (*markableReference)(atomic.LoadPointer(&amr.ref))
+
 	return existingRef.mark
 }
 
@@ -47,9 +45,7 @@ func (amr *atomicMarkableReference) getBoth() (*nonBlockingNode, bool) {
 		return nil, false
 	}
 
-	existingRef := (*markableReference)(unsafe.Pointer(atomic.LoadUintptr(&amr.ref)))
-
-	fmt.Println("GET BOTH", amr, existingRef)
+	existingRef := (*markableReference)(atomic.LoadPointer(&amr.ref))
 
 	return existingRef.node, existingRef.mark
 }
@@ -59,18 +55,20 @@ func (amr *atomicMarkableReference) compareAndSet(expectedNode, desiredNode *non
 		return false
 	}
 
-	existingRefValue := atomic.LoadUintptr(&amr.ref)
-	existingRef := (*markableReference)(unsafe.Pointer(existingRefValue))
+	existingRefValue := atomic.LoadPointer(&amr.ref)
+	existingRef := (*markableReference)(existingRefValue)
 
 	newRef := &markableReference{node: desiredNode, mark: desiredMark}
-	newRefValue := uintptr(unsafe.Pointer(newRef))
+	newRefValue := unsafe.Pointer(newRef)
 
-	return existingRef.node == expectedNode && existingRef.mark == expectedMark && atomic.CompareAndSwapUintptr(&amr.ref, existingRefValue, newRefValue)
+	return existingRef.node == expectedNode &&
+		existingRef.mark == expectedMark &&
+		atomic.CompareAndSwapPointer(&amr.ref, existingRefValue, newRefValue)
 }
 
 func newAtomicMarkableReference(node *nonBlockingNode, mark bool) *atomicMarkableReference {
 	ref := &markableReference{node: node, mark: mark}
-	return &atomicMarkableReference{ref: uintptr(unsafe.Pointer(ref))}
+	return &atomicMarkableReference{ref: unsafe.Pointer(ref)}
 }
 
 type window struct {
@@ -115,8 +113,6 @@ type nonBlockingSet struct {
 }
 
 func (s *nonBlockingSet) Insert(value int) bool {
-	fmt.Println("INSERT", value)
-
 	for {
 		w := findWindow(s.head, value)
 		pred := w.pred
