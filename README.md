@@ -12,6 +12,7 @@ The algorithms are taken from The Art of Multiprocessor Programming, 2nd edition
 - `FineGrainedSyncSet`
 - `OptimisticSyncSet`
 - `LazySyncSet`
+- `NonBlockingSet`
 
 ## Benchmarks
 
