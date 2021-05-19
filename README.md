@@ -52,6 +52,6 @@ In each benchmark, every thread is trying to insert/seek/remove the **full** inp
 ## Conclusions
 
 * In the benchmarks implying concurrent writes and reads `LazySyncSet` showed better results. 
-* In the benchmarks implying concurrent writes and deletions everything depends on the number of CPU cores: if the number of threads exceeds the number of CPU cores, `NonBlockingSyncSet` is better, otherwise use `LazySyncSet`.
+* In the benchmarks implying concurrent writes and deletions everything it's important to compare on the number of CPU cores and concurrent threads: if the number of threads exceeds the number of CPU cores, `NonBlockingSyncSet` is better, otherwise use `LazySyncSet`.
 * When it comes to concurrent reads (with no mutations at all), `CoarseGrainedSyncSet` wins because it acts as wait-free data structure (due to `sync.RWMutex`),
   and it's faster than optimistic implementations because it doesn't need to **validate** the discovered node.
