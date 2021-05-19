@@ -106,7 +106,7 @@ def render_plot(df: pd.DataFrame, scenario: str, data_source: str):
         title=f"Scenario: {scenario}, data_source: {data_source}",
         logy=True,
         legend="True",
-        colormap="winter",
+        colormap="Set1",
     )
     axes.set_ylabel("nanoseconds")
     lgd = axes.legend(loc='best')

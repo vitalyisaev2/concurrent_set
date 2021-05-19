@@ -2,9 +2,15 @@
 This repository contains benchmarks for different implementations of linked list based concurrent set. 
 The algorithms are taken from The Art of Multiprocessor Programming, 2nd edition, 2021, by Herlihy, Shavit, Luchangco and Spear.
 
-1. [Implementations](#Implementations)
-2. [Benchmarks](#Benchmarks)
-3. [Conclusions](#Conclusions)
+1. [Hardware](#Hardware)
+2. [Implementations](#Implementations)
+3. [Benchmarks](#Benchmarks)
+4. [Conclusions](#Conclusions)
+
+## Hardware
+- AMD Ryzen 7 2700X Eight-Core Processor, 16 cores
+- 32GiB DIMM DDR4 2933 MHz
+- Fedora 32 (Linux kernel 5.7.8)
 
 ## Implementations
 
@@ -12,7 +18,7 @@ The algorithms are taken from The Art of Multiprocessor Programming, 2nd edition
 - `FineGrainedSyncSet`
 - `OptimisticSyncSet`
 - `LazySyncSet`
-- `NonBlockingSet`
+- `NonBlockingSyncSet`
 
 ## Benchmarks
 
@@ -45,6 +51,7 @@ In each benchmark, every thread is trying to insert/seek/remove the **full** inp
   
 ## Conclusions
 
-* `LazySyncSet` expectedly showed the best results in benchmarks performing set mutations (write, delete).
-* When it comes to read-only method `Contains`, `CoarseGrainedSyncSet` wins because it acts as wait-free data structure (due to `sync.RWMutex`),
+* In the benchmarks implying concurrent writes and reads `LazySyncSet` showed better results. 
+* In the benchmarks implying concurrent writes and deletions everything depends on the number of CPU cores: if the number of threads exceeds the number of CPU cores, `NonBlockingSyncSet` is better, otherwise use `LazySyncSet`.
+* When it comes to concurrent reads (with no mutations at all), `CoarseGrainedSyncSet` wins because it acts as wait-free data structure (due to `sync.RWMutex`),
   and it's faster than optimistic implementations because it doesn't need to **validate** the discovered node.
